@@ -225,7 +225,8 @@ last_data_error = None
 def load_models():
     global model, feature_cols, target_cols, label_encoders, models_loading, last_model_error
     if models_loading:
-        return None, None, None, None
+        # Another thread is already loading models; caller should wait and re-check.
+        return model, feature_cols, target_cols, label_encoders
     
     try:
         models_loading = True
@@ -266,9 +267,19 @@ def load_data():
 
 # Lazy loading functions
 def get_model():
-    global model, feature_cols, target_cols, label_encoders
-    if model is None and not models_loading:
-        return load_models()
+    global model, feature_cols, target_cols, label_encoders, models_loading
+    if model is None:
+        # On cold starts, background loader may still be in progress. Wait briefly.
+        if models_loading:
+            for _ in range(30):  # up to ~15 seconds
+                time.sleep(0.5)
+                if model is not None:
+                    break
+
+        # If still unavailable, attempt a direct load in-request.
+        if model is None:
+            return load_models()
+
     return model, feature_cols, target_cols, label_encoders
 
 def get_data():
