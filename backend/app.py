@@ -220,30 +220,32 @@ models_loading = False
 data_loading = False
 last_model_error = None
 last_data_error = None
+models_lock = threading.Lock()
 
 # Load models and encoders asynchronously
 def load_models():
     global model, feature_cols, target_cols, label_encoders, models_loading, last_model_error
-    if models_loading:
-        # Another thread is already loading models; caller should wait and re-check.
-        return model, feature_cols, target_cols, label_encoders
-    
-    try:
-        models_loading = True
-        last_model_error = None
-        print("Loading ML models...")
-        model = joblib.load(os.path.join(PROJECT_ROOT, 'multi_xgb_model.joblib'))
-        feature_cols = joblib.load(os.path.join(PROJECT_ROOT, 'feature_cols1.joblib'))
-        target_cols = joblib.load(os.path.join(PROJECT_ROOT, 'target_cols1.joblib'))
-        label_encoders = joblib.load(os.path.join(PROJECT_ROOT, 'label_encoders.joblib'))
-        print("ML models loaded successfully")
-        return model, feature_cols, target_cols, label_encoders
-    except Exception as e:
-        last_model_error = str(e)
-        print(f"Error loading models: {e}")
-        return None, None, None, None
-    finally:
-        models_loading = False
+
+    with models_lock:
+        if model is not None and feature_cols is not None and target_cols is not None and label_encoders is not None:
+            return model, feature_cols, target_cols, label_encoders
+
+        try:
+            models_loading = True
+            last_model_error = None
+            print("Loading ML models...")
+            model = joblib.load(os.path.join(PROJECT_ROOT, 'multi_xgb_model.joblib'))
+            feature_cols = joblib.load(os.path.join(PROJECT_ROOT, 'feature_cols1.joblib'))
+            target_cols = joblib.load(os.path.join(PROJECT_ROOT, 'target_cols1.joblib'))
+            label_encoders = joblib.load(os.path.join(PROJECT_ROOT, 'label_encoders.joblib'))
+            print("ML models loaded successfully")
+            return model, feature_cols, target_cols, label_encoders
+        except Exception as e:
+            last_model_error = str(e)
+            print(f"Error loading models: {e}")
+            return None, None, None, None
+        finally:
+            models_loading = False
 
 # Load data asynchronously
 def load_data():
@@ -267,18 +269,9 @@ def load_data():
 
 # Lazy loading functions
 def get_model():
-    global model, feature_cols, target_cols, label_encoders, models_loading
+    global model, feature_cols, target_cols, label_encoders
     if model is None:
-        # On cold starts, background loader may still be in progress. Wait briefly.
-        if models_loading:
-            for _ in range(30):  # up to ~15 seconds
-                time.sleep(0.5)
-                if model is not None:
-                    break
-
-        # If still unavailable, attempt a direct load in-request.
-        if model is None:
-            return load_models()
+        return load_models()
 
     return model, feature_cols, target_cols, label_encoders
 
@@ -294,14 +287,10 @@ client, db, users_collection, projects_collection, forecasts_collection, invento
 # Load models and data in background threads
 def load_resources_async():
     """Load heavy resources in background threads"""
-    def load_models_thread():
-        load_models()
-    
     def load_data_thread():
         load_data()
     
-    # Start background threads
-    threading.Thread(target=load_models_thread, daemon=True).start()
+    # Load only dataset in background. Models load on-demand with lock for reliability.
     threading.Thread(target=load_data_thread, daemon=True).start()
 
 # Start loading resources in background
