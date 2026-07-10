@@ -59,15 +59,21 @@ def send_async_email(app, msg):
             print(f"Failed to send email: {e}")
             import traceback
             traceback.print_exc()
-# Configure CORS for production deployment - more permissive for debugging
-CORS(app, 
+def get_allowed_origins():
+    frontend_url = os.getenv('FRONTEND_BASE_URL', 'http://localhost:5173').rstrip('/')
+    return [
+        "http://localhost:3000",  # Local development (React default)
+        "http://localhost:5173",  # Local development (Vite default)
+        "https://material-forecast-website.onrender.com",  # Legacy production frontend
+        "https://material-forecast-website-be.onrender.com",  # Legacy production backend
+        frontend_url
+    ]
+
+
+# Configure CORS for production deployment - supports env-configured frontend URL
+CORS(app,
      resources={r"/api/*": {
-         "origins": [
-             "http://localhost:3000",  # Local development (React default)
-             "http://localhost:5173",  # Local development (Vite default)
-             "https://material-forecast-website.onrender.com",  # Production frontend
-             "https://material-forecast-website-be.onrender.com"  # Production backend (if needed)
-         ],
+         "origins": get_allowed_origins(),
          "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
          "allow_headers": ["Content-Type", "Authorization"],
          "supports_credentials": True,
@@ -80,12 +86,7 @@ CORS(app,
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin')
-    allowed_origins = [
-        "http://localhost:3000",
-        "http://localhost:5173",  # Added Vite default port
-        "https://material-forecast-website.onrender.com",
-        "https://material-forecast-website-be.onrender.com"
-    ]
+    allowed_origins = get_allowed_origins()
     
     if origin in allowed_origins:
         response.headers['Access-Control-Allow-Origin'] = origin
@@ -102,12 +103,7 @@ def handle_preflight():
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
         origin = request.headers.get('Origin')
-        allowed_origins = [
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "https://material-forecast-website.onrender.com",
-            "https://material-forecast-website-be.onrender.com"
-        ]
+        allowed_origins = get_allowed_origins()
         
         if origin in allowed_origins:
             response.headers['Access-Control-Allow-Origin'] = origin
