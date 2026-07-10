@@ -21,6 +21,10 @@ from email_service import email_service
 
 load_dotenv()  # load environment variables from .env if present
 app = Flask(__name__)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, '..'))
+
 # Config from environment
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'plangrid-secret-key-2025')
 _jwt_expires_hours = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES_HOURS', '24'))
@@ -214,23 +218,27 @@ label_encoders = None
 df = None
 models_loading = False
 data_loading = False
+last_model_error = None
+last_data_error = None
 
 # Load models and encoders asynchronously
 def load_models():
-    global model, feature_cols, target_cols, label_encoders, models_loading
+    global model, feature_cols, target_cols, label_encoders, models_loading, last_model_error
     if models_loading:
         return None, None, None, None
     
     try:
         models_loading = True
+        last_model_error = None
         print("Loading ML models...")
-        model = joblib.load('../multi_xgb_model.joblib')
-        feature_cols = joblib.load('../feature_cols1.joblib')
-        target_cols = joblib.load('../target_cols1.joblib')
-        label_encoders = joblib.load('../label_encoders.joblib')
+        model = joblib.load(os.path.join(PROJECT_ROOT, 'multi_xgb_model.joblib'))
+        feature_cols = joblib.load(os.path.join(PROJECT_ROOT, 'feature_cols1.joblib'))
+        target_cols = joblib.load(os.path.join(PROJECT_ROOT, 'target_cols1.joblib'))
+        label_encoders = joblib.load(os.path.join(PROJECT_ROOT, 'label_encoders.joblib'))
         print("ML models loaded successfully")
         return model, feature_cols, target_cols, label_encoders
     except Exception as e:
+        last_model_error = str(e)
         print(f"Error loading models: {e}")
         return None, None, None, None
     finally:
@@ -238,17 +246,19 @@ def load_models():
 
 # Load data asynchronously
 def load_data():
-    global df, data_loading
+    global df, data_loading, last_data_error
     if data_loading:
         return None
     
     try:
         data_loading = True
+        last_data_error = None
         print("Loading dataset...")
-        df = pd.read_csv('../powergrid_realistic_material_dataset1.csv')
+        df = pd.read_csv(os.path.join(PROJECT_ROOT, 'powergrid_realistic_material_dataset1.csv'))
         print("Dataset loaded successfully")
         return df
     except Exception as e:
+        last_data_error = str(e)
         print(f"Error loading data: {e}")
         return None
     finally:
@@ -750,7 +760,11 @@ def forecast():
     # Get models lazily
     model, feature_cols, target_cols, label_encoders = get_model()
     if model is None or feature_cols is None or target_cols is None or label_encoders is None:
-        return jsonify({'error': 'Model not available - still loading. Please try again in a moment.'}), 503
+        if models_loading:
+            return jsonify({'error': 'Model not available - still loading. Please try again in a moment.'}), 503
+        if last_model_error:
+            return jsonify({'error': f'Model failed to load: {last_model_error}'}), 500
+        return jsonify({'error': 'Model not available. Please try again in a moment.'}), 503
     
     data = request.get_json()
     username = get_jwt_identity()
