@@ -100,8 +100,6 @@ plangrid/
 └── README.md                # Documentation
 ```
 
-## 👥 Contributors
-Developed by **SDE Interns** as a capstone project for intelligent infrastructure management.
 
 ---
 *© 2025 PlanGrid Team. All Rights Reserved.*
