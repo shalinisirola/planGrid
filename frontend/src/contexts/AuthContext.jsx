@@ -55,14 +55,24 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const apiUrl = (() => {
-    const envUrl = import.meta.env.VITE_API_BASE_URL;
-    if (envUrl && envUrl.trim()) {
-      return envUrl;
-    }
-
     const isLocalHost =
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1';
+
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envUrl && envUrl.trim()) {
+      const normalizedEnvUrl = envUrl.trim();
+      const envIsLocalHost =
+        normalizedEnvUrl.includes('localhost') ||
+        normalizedEnvUrl.includes('127.0.0.1');
+
+      // Never use localhost API from a deployed frontend.
+      if (!isLocalHost && envIsLocalHost) {
+        return 'https://plangrid.onrender.com';
+      }
+
+      return normalizedEnvUrl;
+    }
 
     return isLocalHost ? 'http://localhost:5000' : 'https://plangrid.onrender.com';
   })();
