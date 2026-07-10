@@ -54,6 +54,19 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const apiUrl = (() => {
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envUrl && envUrl.trim()) {
+      return envUrl;
+    }
+
+    const isLocalHost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+
+    return isLocalHost ? 'http://localhost:5000' : 'https://plangrid.onrender.com';
+  })();
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -68,7 +81,6 @@ export const AuthProvider = ({ children }) => {
       }
       
       // Verify token and get user info with role (with timeout)
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
       
@@ -105,7 +117,6 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
       
@@ -140,7 +151,6 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       await axios.post(`${apiUrl}/api/register`, {
         username,
         email,
@@ -157,7 +167,6 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
       
@@ -195,7 +204,6 @@ export const AuthProvider = ({ children }) => {
   // Forgot password methods
   const forgotPassword = async (email) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(`${apiUrl}/api/forgot-password`, {
         email
       });
@@ -210,7 +218,6 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (token, newPassword) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(`${apiUrl}/api/reset-password`, {
         token,
         new_password: newPassword
@@ -226,7 +233,6 @@ export const AuthProvider = ({ children }) => {
 
   const verifyResetToken = async (token) => {
     try {
-      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(`${apiUrl}/api/verify-reset-token`, {
         token
       });
