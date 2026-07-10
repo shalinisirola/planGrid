@@ -2547,16 +2547,22 @@ def initialize_inventory():
     ]
     
     try:
-        # Check if inventory already exists
+        # Use upsert to avoid duplicate key errors
+        upserted = 0
+        for item in material_definitions:
+            result = inventory_collection.update_one(
+                {'material_code': item['material_code'], 'warehouse': item['warehouse']},
+                {'$setOnInsert': item},
+                upsert=True
+            )
+            if result.upserted_id:
+                upserted += 1
+
         existing_count = inventory_collection.count_documents({})
-        if existing_count > 0:
-            return jsonify({'message': 'Inventory already initialized', 'count': existing_count}), 200
-        
-        # Insert all material definitions
-        result = inventory_collection.insert_many(material_definitions)
         return jsonify({
             'message': 'Inventory initialized successfully',
-            'count': len(result.inserted_ids)
+            'count': existing_count,
+            'new_items': upserted
         }), 201
     except errors.PyMongoError as e:
         return jsonify({'error': f'Database error: {str(e)}'}), 500

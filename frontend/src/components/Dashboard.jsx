@@ -133,21 +133,22 @@ const Dashboard = () => {
   const load = async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
     try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const results = await Promise.allSettled([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/analytics/overview`),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/analytics/materials`),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/projects`, {
+        axios.get(`${apiUrl}/api/analytics/overview`),
+        axios.get(`${apiUrl}/api/analytics/materials`),
+        axios.get(`${apiUrl}/api/projects`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/trends`, {
+        axios.get(`${apiUrl}/api/dashboard/trends`, {
           params: selectedProjectId ? { project_id: selectedProjectId } : {},
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/metrics`, {
+        axios.get(`${apiUrl}/api/dashboard/metrics`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -240,7 +241,8 @@ const Dashboard = () => {
     // Only reload trends, keep other datasets
     (async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/trends`, {
+        const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const res = await axios.get(`${apiUrl}/api/dashboard/trends`, {
           params: selectedProjectId ? { project_id: selectedProjectId } : {},
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });

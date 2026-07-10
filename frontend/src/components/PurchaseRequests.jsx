@@ -106,9 +106,15 @@ const PurchaseRequests = () => {
   const loadProjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        console.warn('No token found, skipping project load');
+        return;
+      }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/projects`, {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      console.log('Loading projects from:', `${apiUrl}/api/projects`);
+      
+      const response = await fetch(`${apiUrl}/api/projects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -117,7 +123,13 @@ const PurchaseRequests = () => {
 
       if (response.ok) {
         const projects = await response.json();
-        setAvailableProjects(projects.map(p => p.name));
+        console.log('Projects loaded:', projects);
+        const projectNames = projects.map(p => p.name || p._id);
+        setAvailableProjects(projectNames);
+      } else {
+        console.error('Failed to load projects:', response.status, response.statusText);
+        const errText = await response.text();
+        console.error('Error response:', errText);
       }
     } catch (err) {
       console.error('Error loading projects:', err);
@@ -605,6 +617,8 @@ const PurchaseRequests = () => {
     return (
       <div className="relative date-picker-container">
         <input
+          id="expectedDelivery"
+          name="expectedDelivery"
           type="text"
           value={selectedDate ? (() => {
             const [year, month, day] = selectedDate.split('-');
@@ -996,30 +1010,30 @@ const PurchaseRequests = () => {
                   Add New Dealer
                 </button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {availableDealers.map((dealer, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">{dealer.name}</div>
-                      <div className="text-sm text-gray-600">{dealer.contact}</div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`h-4 w-4 ${
-                              star <= Math.floor(dealer.rating || 4.0)
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
+                  <div key={index} className="flex flex-col gap-1 p-3 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-gray-900 text-sm truncate max-w-[60%]">{dealer.name}</div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-3.5 w-3.5 ${
+                                star <= Math.floor(dealer.rating || 4.0)
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 ml-1">
+                          {dealer.rating || 4.0}
+                        </span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 ml-1">
-                        {dealer.rating || 4.0}
-                      </span>
                     </div>
+                    <div className="text-xs text-gray-500">{dealer.contact}</div>
                   </div>
                 ))}
               </div>
@@ -1030,19 +1044,20 @@ const PurchaseRequests = () => {
 
       {/* Create Order Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">Create New Order</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 flex items-center justify-between p-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Create New Order</h2>
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Close (Esc)"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateOrder} className="space-y-4">
+            <form onSubmit={handleCreateOrder} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Project *
@@ -1153,20 +1168,20 @@ const PurchaseRequests = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
                 >
-                  Cancel
+                  ✕ Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
-                  {creating ? 'Creating...' : 'Create Order'}
+                  {creating ? 'Creating...' : '✓ Create Order'}
                 </button>
               </div>
             </form>

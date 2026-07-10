@@ -619,7 +619,8 @@ const ProjectManagement = () => {
 
   const loadProjectForecasts = async (projectId) => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/projects/${projectId}/forecasts`, {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await axios.get(`${apiUrl}/api/projects/${projectId}/forecasts`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -660,7 +661,8 @@ const ProjectManagement = () => {
 
   const loadProjects = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/projects`);
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await axios.get(`${apiUrl}/api/projects`);
       const projectData = Array.isArray(response.data) ? response.data : [];
       setProjects(projectData);
 
@@ -836,8 +838,9 @@ const ProjectManagement = () => {
       console.log('Saving material values for project:', projectId);
       console.log('Material values:', materialValues);
 
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/projects/${projectId}/actual-values`,
+        `${apiUrl}/api/projects/${projectId}/actual-values`,
         { actual_values: materialValues },
         {
           headers: {
@@ -896,8 +899,9 @@ const ProjectManagement = () => {
     setError('');
 
     try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/projects/${invitingProject.project_id}/invite-team`,
+        `${apiUrl}/api/projects/${invitingProject.project_id}/invite-team`,
         inviteForm,
         {
           headers: {
@@ -920,7 +924,8 @@ const ProjectManagement = () => {
 
   const handleEditProject = async (updatedProject) => {
     try {
-      const response = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/projects/${updatedProject.project_id}`, updatedProject);
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await axios.put(`${apiUrl}/api/projects/${updatedProject.project_id}`, updatedProject);
 
       // Update the local projects state
       setProjects(prevProjects =>
@@ -939,7 +944,8 @@ const ProjectManagement = () => {
 
   const handleDeleteProject = async (projectId) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/projects/${projectId}`);
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      await axios.delete(`${apiUrl}/api/projects/${projectId}`);
 
       // Remove the project from local state
       setProjects(prevProjects =>
@@ -956,7 +962,8 @@ const ProjectManagement = () => {
 
   const handleCreateProject = async (newProject) => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/projects`, newProject);
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await axios.post(`${apiUrl}/api/projects`, newProject);
 
       // Add the new project to local state
       setProjects(prevProjects => [...prevProjects, response.data]);
